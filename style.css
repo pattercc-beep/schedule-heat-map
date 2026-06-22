@@ -1,0 +1,191 @@
+body {
+    font-family: Arial, sans-serif;
+    background: #f7f7f7;
+    color: #222;
+    margin: 0;
+    padding: 24px;
+    line-height: 1.5;
+}
+
+main {
+    max-width: 1150px;
+    margin: 0 auto;
+}
+
+h1 {
+    margin-top: 0;
+    margin-bottom: 8px;
+}
+
+h2 {
+    margin-top: 0;
+}
+
+.intro,
+.helper {
+    color: #555;
+}
+
+.card {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 18px 0;
+}
+
+.results-card {
+    overflow-x: auto;
+}
+
+.form-row {
+    margin: 14px 0;
+}
+
+label {
+    font-weight: bold;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.checkbox-label {
+    font-weight: normal;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+input,
+select,
+button {
+    padding: 7px;
+    font-size: 14px;
+}
+
+button {
+    background: #222;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 16px;
+    cursor: pointer;
+    margin: 10px 0;
+}
+
+button:hover {
+    background: #444;
+}
+
+details {
+    margin-top: 14px;
+}
+
+summary {
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.summary-box {
+    background: #f1f1f1;
+    border-radius: 6px;
+    padding: 12px;
+}
+
+.summary-box strong {
+    display: block;
+    font-size: 22px;
+}
+
+.table-wrap {
+    overflow-x: auto;
+    max-height: 600px;
+    border: 1px solid #ccc;
+    margin-top: 10px;
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-top: 10px;
+    margin-bottom: 30px;
+}
+
+th,
+td {
+    border: 1px solid #bbb;
+    padding: 7px;
+    text-align: center;
+    white-space: nowrap;
+}
+
+th {
+    background-color: #e9e9e9;
+}
+
+.table-wrap th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+td.heat-excellent {
+    background-color: #4CAF50 !important;
+    color: white !important;
+    font-weight: bold;
+}
+
+td.heat-strong {
+    background-color: #C6E0B4 !important;
+    color: black !important;
+}
+
+td.heat-viable {
+    background-color: #FFD966 !important;
+    color: black !important;
+}
+
+td.heat-low {
+    background-color: #F4B084 !important;
+    color: black !important;
+}
+
+.export-buttons {
+    margin: 18px 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.export-buttons button {
+    background: #555;
+}
+
+@media print {
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    button,
+    input,
+    select,
+    details,
+    .card:not(.results-card) {
+        display: none !important;
+    }
+
+    body {
+        background: white;
+    }
+
+    .card {
+        border: none;
+    }
+}
