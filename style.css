@@ -76,14 +76,6 @@ a {
     margin: 14px 0;
 }
 
-.student-count-row {
-    margin-top: 22px;
-}
-
-.student-count-row input {
-    width: 120px;
-}
-
 .field-note {
     font-size: 14px;
     margin-top: 6px;
@@ -149,6 +141,12 @@ summary {
 .summary-box strong {
     display: block;
     font-size: 22px;
+}
+
+.results-note {
+    color: #555;
+    margin-top: -8px;
+    margin-bottom: 18px;
 }
 
 .table-wrap {

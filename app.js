@@ -3,15 +3,9 @@ let latestGrid = [];
 
 document.getElementById("runButton").addEventListener("click", async function () {
     const file = document.getElementById("fileInput").files[0];
-    const studentCount = Number(document.getElementById("studentCount").value);
 
     if (!file) {
-        alert("Please upload a de-identified schedule file first.");
-        return;
-    }
-
-    if (!Number.isInteger(studentCount) || studentCount < 1) {
-        alert("Please enter the number of students submitted in CaRT.");
+        alert("Please upload the de-identified schedule file created by the File Prep Tool.");
         return;
     }
 
@@ -29,27 +23,74 @@ document.getElementById("runButton").addEventListener("click", async function ()
     const uploadedHeaders = Object.keys(rows[0]);
 
     const containsUCID = uploadedHeaders.some(function (header) {
-        const normalized = String(header)
-            .toLowerCase()
-            .replace(/[\s_-]/g, "");
-
+        const normalized = normalizeHeader(header);
         return normalized === "ucid";
     });
 
     if (containsUCID) {
         alert(
-            "This file appears to contain a UC ID column. Please remove Column A containing student UCIDs, save the file, and upload the de-identified version."
+            "This file contains a UC ID column. Do not upload the original CaRT export. Please use the Schedule Heat Map File Prep Tool and upload the de-identified CSV it creates."
         );
         return;
     }
 
-    const settings = getSettings();
-    const cleanRows = cleanScheduleRows(rows, settings);
-    const busySlots = buildBusySlots(cleanRows, settings);
+    const anonymousIDHeader = uploadedHeaders.find(function (header) {
+        return normalizeHeader(header) === "anonymousstudentid";
+    });
 
-    const availabilityGrid = buildAvailabilityGrid(
-        busySlots,
-        studentCount,
+    if (!anonymousIDHeader) {
+        alert(
+            "The file does not contain an Anonymous Student ID column. Please use the Schedule Heat Map File Prep Tool to prepare the CaRT export before uploading it."
+        );
+        return;
+    }
+
+    const studentIDs = new Set();
+
+    rows.forEach(function (row) {
+        const id = String(row[anonymousIDHeader] ?? "").trim();
+
+        if (id !== "") {
+            studentIDs.add(id);
+        }
+    });
+
+    const studentCount = studentIDs.size;
+
+    if (studentCount === 0) {
+        alert("No Anonymous Student IDs were found in the uploaded file.");
+        return;
+    }
+
+    const settings = getSettings();
+
+    const searchStart = timeTextToMinutes(settings.searchStart);
+    const searchEnd = timeTextToMinutes(settings.searchEnd);
+
+    if (searchEnd <= searchStart) {
+        alert("The meeting search end time must be later than the start time.");
+        return;
+    }
+
+    if (settings.meetingLength > searchEnd - searchStart) {
+        alert("The selected meeting length is longer than the meeting search window.");
+        return;
+    }
+
+    const cleanRows = cleanScheduleRows(
+        rows,
+        settings,
+        anonymousIDHeader
+    );
+
+    if (cleanRows.length === 0) {
+        alert("No usable class meeting records were found in the uploaded file.");
+        return;
+    }
+
+    const availabilityGrid = buildMeetingAvailabilityGrid(
+        cleanRows,
+        studentIDs,
         settings
     );
 
@@ -70,6 +111,10 @@ document.getElementById("runButton").addEventListener("click", async function ()
             ? collapsedWindows[0]
             : null;
 
+    const tier1Options = availabilityGrid.filter(function (row) {
+        return row.pctAvailable >= 0.90;
+    }).length;
+
     document.getElementById("results").innerHTML = `
         <div class="summary-grid">
 
@@ -84,12 +129,12 @@ document.getElementById("runButton").addEventListener("click", async function ()
             </div>
 
             <div class="summary-box">
-                <strong>${cleanRows.length}</strong>
-                day/class rows after cleanup
+                <strong>${tier1Options}</strong>
+                Tier 1 meeting options
             </div>
 
             <div class="summary-box">
-                <strong>${bestWindow ? bestWindow.minPctAvailableLabel : "N/A"}</strong>
+                <strong>${bestWindow ? bestWindow.pctAvailableLabel : "N/A"}</strong>
                 best ${settings.meetingLength}-minute window
             </div>
 
@@ -102,7 +147,7 @@ document.getElementById("runButton").addEventListener("click", async function ()
                         <strong>Best meeting option:</strong>
                         ${dayName(bestWindow.day)},
                         ${minutesToTimeText(bestWindow.startMinutes)}–${minutesToTimeText(bestWindow.endMinutes)}
-                        (${bestWindow.minPctAvailableLabel} minimum availability).
+                        (${bestWindow.pctAvailableLabel} of students available for the full meeting).
                     </p>
                 `
                 : `
@@ -128,9 +173,16 @@ document.getElementById("runButton").addEventListener("click", async function ()
         </div>
 
         ${buildRecommendedWindowsTable(collapsedWindows)}
-        ${buildAvailabilityTable(availabilityGrid)}
+        ${buildAvailabilityTable(availabilityGrid, settings)}
     `;
 });
+
+
+function normalizeHeader(header) {
+    return String(header || "")
+        .toLowerCase()
+        .replace(/[\s_-]/g, "");
+}
 
 
 function getSettings() {
@@ -165,18 +217,19 @@ function getSettings() {
 }
 
 
-function cleanScheduleRows(rows, settings) {
+function cleanScheduleRows(rows, settings, anonymousIDHeader) {
     const cleanRows = [];
 
     rows.forEach(function (row) {
+        const studentId =
+            String(row[anonymousIDHeader] ?? "").trim();
+
         const dayText =
             String(row["Days of Week"] || "").trim();
 
-        if (dayText === "") {
+        if (studentId === "" || dayText === "") {
             return;
         }
-
-        const days = dayText.split(/\s+/);
 
         const startMinutes =
             convertExcelTimeToMinutes(
@@ -188,14 +241,25 @@ function cleanScheduleRows(rows, settings) {
                 row["Meeting End Time"]
             );
 
+        if (
+            !Number.isFinite(startMinutes) ||
+            !Number.isFinite(endMinutes) ||
+            endMinutes <= startMinutes
+        ) {
+            return;
+        }
+
         const buffer =
             getBufferMinutes(
                 row["Location"],
                 settings
             );
 
+        const days = parseMeetingDays(dayText);
+
         days.forEach(function (day) {
             cleanRows.push({
+                studentId: studentId,
                 subject: row["Subject Code"],
                 catalog: row["Catalog Number"],
                 location: row["Location"],
@@ -213,55 +277,21 @@ function cleanScheduleRows(rows, settings) {
 }
 
 
-function buildBusySlots(cleanRows, settings) {
-    const stepMinutes = 10;
+function parseMeetingDays(dayText) {
+    const validDays = new Set(["M", "T", "W", "R", "F"]);
 
-    const searchStart =
-        timeTextToMinutes(settings.searchStart);
-
-    const searchEnd =
-        timeTextToMinutes(settings.searchEnd);
-
-    const busySlots = [];
-
-    cleanRows.forEach(function (row) {
-        const startRounded =
-            roundDown(
-                row.startBuffered,
-                stepMinutes
-            );
-
-        const endRounded =
-            roundUp(
-                row.endBuffered,
-                stepMinutes
-            );
-
-        for (
-            let slot = startRounded;
-            slot < endRounded;
-            slot += stepMinutes
-        ) {
-            if (
-                slot >= searchStart &&
-                slot < searchEnd
-            ) {
-                busySlots.push({
-                    day: row.day,
-                    slotMinutes: slot,
-                    slotLabel: minutesToTimeText(slot)
-                });
-            }
-        }
-    });
-
-    return busySlots;
+    return String(dayText)
+        .trim()
+        .split(/\s+/)
+        .filter(function (day) {
+            return validDays.has(day);
+        });
 }
 
 
-function buildAvailabilityGrid(
-    busySlots,
-    studentCount,
+function buildMeetingAvailabilityGrid(
+    cleanRows,
+    studentIDs,
     settings
 ) {
     const days = ["M", "T", "W", "R", "F"];
@@ -273,37 +303,50 @@ function buildAvailabilityGrid(
     const searchEnd =
         timeTextToMinutes(settings.searchEnd);
 
-    const busyMap = new Map();
+    const latestStart =
+        searchEnd - settings.meetingLength;
 
-    busySlots.forEach(function (slot) {
-        const key =
-            slot.day + "|" + slot.slotMinutes;
+    const studentCount = studentIDs.size;
 
-        busyMap.set(
-            key,
-            (busyMap.get(key) || 0) + 1
+    const rowsByDay = new Map();
+
+    days.forEach(function (day) {
+        rowsByDay.set(
+            day,
+            cleanRows.filter(function (row) {
+                return row.day === day;
+            })
         );
     });
 
     const grid = [];
 
     for (
-        let time = searchStart;
-        time < searchEnd;
-        time += stepMinutes
+        let startMinutes = searchStart;
+        startMinutes <= latestStart;
+        startMinutes += stepMinutes
     ) {
-        days.forEach(function (day, index) {
-            const key =
-                day + "|" + time;
+        const endMinutes =
+            startMinutes + settings.meetingLength;
 
-            const rawBusyCount =
-                busyMap.get(key) || 0;
+        days.forEach(function (day, index) {
+            const busyStudents = new Set();
+
+            const dayRows =
+                rowsByDay.get(day) || [];
+
+            dayRows.forEach(function (row) {
+                const overlapsMeeting =
+                    row.startBuffered < endMinutes &&
+                    row.endBuffered > startMinutes;
+
+                if (overlapsMeeting) {
+                    busyStudents.add(row.studentId);
+                }
+            });
 
             const busyCount =
-                Math.min(
-                    rawBusyCount,
-                    studentCount
-                );
+                busyStudents.size;
 
             const availableCount =
                 Math.max(
@@ -319,15 +362,16 @@ function buildAvailabilityGrid(
             grid.push({
                 day: day,
                 dayOrder: index + 1,
-                slotMinutes: time,
-                slotLabel: minutesToTimeText(time),
+                slotMinutes: startMinutes,
+                slotLabel: minutesToTimeText(startMinutes),
+                startMinutes: startMinutes,
+                endMinutes: endMinutes,
                 busyCount: busyCount,
                 availableCount: availableCount,
                 pctAvailable: pctAvailable,
                 pctAvailableLabel:
-                    Math.round(
-                        pctAvailable * 100
-                    ) + "%"
+                    Math.round(pctAvailable * 100) + "%",
+                tier: getTier(pctAvailable)
             });
         });
     }
@@ -337,89 +381,28 @@ function buildAvailabilityGrid(
 
 
 function findRecommendedWindows(grid, settings) {
-    const days = ["M", "T", "W", "R", "F"];
-    const stepMinutes = 10;
-
-    const slotsNeeded =
-        settings.meetingLength / stepMinutes;
-
-    const searchEnd =
-        timeTextToMinutes(settings.searchEnd);
-
-    const results = [];
-
-    days.forEach(function (day, dayIndex) {
-        const dayRows = grid
-            .filter(
-                row => row.day === day
-            )
-            .sort(
-                (a, b) =>
-                    a.slotMinutes -
-                    b.slotMinutes
+    return grid
+        .filter(function (row) {
+            return row.pctAvailable >=
+                settings.minimumAvailability;
+        })
+        .map(function (row) {
+            return {
+                ...row
+            };
+        })
+        .sort(function (a, b) {
+            return (
+                b.pctAvailable -
+                    a.pctAvailable ||
+                a.dayOrder -
+                    b.dayOrder ||
+                getStartTimePreference(a.startMinutes) -
+                    getStartTimePreference(b.startMinutes) ||
+                a.startMinutes -
+                    b.startMinutes
             );
-
-        for (
-            let i = 0;
-            i <= dayRows.length - slotsNeeded;
-            i++
-        ) {
-            const startMinutes =
-                dayRows[i].slotMinutes;
-
-            const endMinutes =
-                startMinutes +
-                settings.meetingLength;
-
-            if (endMinutes > searchEnd) {
-                continue;
-            }
-
-            const windowRows =
-                dayRows.slice(
-                    i,
-                    i + slotsNeeded
-                );
-
-            const minPct =
-                Math.min(
-                    ...windowRows.map(
-                        row =>
-                            row.pctAvailable
-                    )
-                );
-
-            if (
-                minPct >=
-                settings.minimumAvailability
-            ) {
-                results.push({
-                    day: day,
-                    dayOrder: dayIndex + 1,
-                    startMinutes: startMinutes,
-                    endMinutes: endMinutes,
-                    minPctAvailable: minPct,
-                    minPctAvailableLabel:
-                        Math.round(
-                            minPct * 100
-                        ) + "%",
-                    tier: getTier(minPct)
-                });
-            }
-        }
-    });
-
-    return results.sort(
-        (a, b) =>
-            b.minPctAvailable -
-                a.minPctAvailable ||
-            a.dayOrder -
-                b.dayOrder ||
-            getStartTimePreference(a.startMinutes) -
-                getStartTimePreference(b.startMinutes) ||
-            a.startMinutes -
-                b.startMinutes
-    );
+        });
 }
 
 
@@ -429,25 +412,27 @@ function collapseRecommendedWindows(windows) {
 
     days.forEach(function (day) {
         const dayWindows = windows
-            .filter(
-                window => window.day === day
-            )
-            .sort((a, b) =>
-                b.minPctAvailable -
-                    a.minPctAvailable ||
-                getStartTimePreference(a.startMinutes) -
-                    getStartTimePreference(b.startMinutes) ||
-                a.startMinutes -
-                    b.startMinutes
-            );
+            .filter(function (window) {
+                return window.day === day;
+            })
+            .sort(function (a, b) {
+                return (
+                    b.pctAvailable -
+                        a.pctAvailable ||
+                    getStartTimePreference(a.startMinutes) -
+                        getStartTimePreference(b.startMinutes) ||
+                    a.startMinutes -
+                        b.startMinutes
+                );
+            });
 
         dayWindows.forEach(function (window) {
             const alreadyRepresented =
                 selected.some(function (existing) {
                     return (
                         existing.day === window.day &&
-                        existing.minPctAvailable ===
-                            window.minPctAvailable
+                        existing.pctAvailable ===
+                            window.pctAvailable
                     );
                 });
 
@@ -460,16 +445,18 @@ function collapseRecommendedWindows(windows) {
     });
 
     return selected
-        .sort((a, b) =>
-            b.minPctAvailable -
-                a.minPctAvailable ||
-            a.dayOrder -
-                b.dayOrder ||
-            getStartTimePreference(a.startMinutes) -
-                getStartTimePreference(b.startMinutes) ||
-            a.startMinutes -
-                b.startMinutes
-        )
+        .sort(function (a, b) {
+            return (
+                b.pctAvailable -
+                    a.pctAvailable ||
+                a.dayOrder -
+                    b.dayOrder ||
+                getStartTimePreference(a.startMinutes) -
+                    getStartTimePreference(b.startMinutes) ||
+                a.startMinutes -
+                    b.startMinutes
+            );
+        })
         .slice(0, 25);
 }
 
@@ -499,7 +486,7 @@ function buildRecommendedWindowsTable(windows) {
                 <th>Rank</th>
                 <th>Day</th>
                 <th>Best Window</th>
-                <th>Minimum Available</th>
+                <th>Students Available</th>
                 <th>Tier</th>
             </tr>
     `;
@@ -526,7 +513,7 @@ function buildRecommendedWindowsTable(windows) {
                         ${minutesToTimeText(window.endMinutes)}
                     </td>
                     <td>
-                        ${window.minPctAvailableLabel}
+                        ${window.pctAvailableLabel}
                     </td>
                     <td>
                         ${window.tier}
@@ -542,14 +529,19 @@ function buildRecommendedWindowsTable(windows) {
 }
 
 
-function buildAvailabilityTable(grid) {
+function buildAvailabilityTable(grid, settings) {
     let html = `
         <h3>Availability Heat Map</h3>
+
+        <p class="results-note">
+            Each cell shows the percentage of students available for the full
+            ${settings.meetingLength}-minute meeting beginning at that time.
+        </p>
 
         <div class="table-wrap">
             <table>
                 <tr>
-                    <th>Time</th>
+                    <th>Meeting Start</th>
                     <th>Monday</th>
                     <th>Tuesday</th>
                     <th>Wednesday</th>
@@ -583,6 +575,11 @@ function buildAvailabilityTable(grid) {
                             r.slotMinutes === time
                     );
 
+                if (!row) {
+                    html += `<td></td>`;
+                    return;
+                }
+
                 const cssClass =
                     getHeatClass(
                         row.pctAvailable
@@ -591,7 +588,7 @@ function buildAvailabilityTable(grid) {
                 html += `
                     <td
                         class="${cssClass}"
-                        title="${row.availableCount} students available"
+                        title="${row.availableCount} of ${row.availableCount + row.busyCount} students available for the full meeting"
                     >
                         ${row.pctAvailableLabel}
                     </td>
@@ -617,7 +614,7 @@ function downloadRecommendationsCSV() {
             "Day",
             "Start",
             "End",
-            "Minimum Available",
+            "Students Available",
             "Tier"
         ]
     ];
@@ -633,7 +630,7 @@ function downloadRecommendationsCSV() {
                 minutesToTimeText(
                     row.endMinutes
                 ),
-                row.minPctAvailableLabel,
+                row.pctAvailableLabel,
                 row.tier
             ]);
         }
@@ -649,7 +646,7 @@ function downloadRecommendationsCSV() {
 function downloadHeatMapCSV() {
     const rows = [
         [
-            "Time",
+            "Meeting Start",
             "Monday",
             "Tuesday",
             "Wednesday",
@@ -811,28 +808,63 @@ function dayName(day) {
 
 
 function convertExcelTimeToMinutes(value) {
-    let totalMinutes;
+    if (value === null || value === undefined || value === "") {
+        return NaN;
+    }
 
     if (typeof value === "number") {
         const fractionOfDay =
             value % 1;
 
-        totalMinutes =
-            Math.round(
-                fractionOfDay *
-                24 *
-                60
-            );
-    } else {
-        const date =
-            new Date(value);
-
-        totalMinutes =
-            date.getHours() * 60 +
-            date.getMinutes();
+        return Math.round(
+            fractionOfDay *
+            24 *
+            60
+        );
     }
 
-    return totalMinutes;
+    const text =
+        String(value).trim();
+
+    const timeMatch =
+        text.match(
+            /^(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)?$/i
+        );
+
+    if (timeMatch) {
+        let hours =
+            Number(timeMatch[1]);
+
+        const minutes =
+            Number(timeMatch[2]);
+
+        const period =
+            timeMatch[3]
+                ? timeMatch[3].toUpperCase()
+                : null;
+
+        if (period === "AM" && hours === 12) {
+            hours = 0;
+        }
+
+        if (period === "PM" && hours !== 12) {
+            hours += 12;
+        }
+
+        return hours * 60 + minutes;
+    }
+
+    const date =
+        new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+        return NaN;
+    }
+
+    return (
+        date.getHours() * 60 +
+        date.getMinutes()
+    );
 }
 
 
@@ -847,15 +879,6 @@ function timeTextToMinutes(timeText) {
 }
 
 
-/*
-    Convert internal minute values to
-    user-friendly 12-hour time.
-
-    Examples:
-    540  -> 9:00 AM
-    870  -> 2:30 PM
-    1020 -> 5:00 PM
-*/
 function minutesToTimeText(minutes) {
     const hours24 =
         Math.floor(minutes / 60);
@@ -881,21 +904,5 @@ function minutesToTimeText(minutes) {
         String(mins).padStart(2, "0") +
         " " +
         period
-    );
-}
-
-
-function roundDown(value, step) {
-    return (
-        Math.floor(value / step) *
-        step
-    );
-}
-
-
-function roundUp(value, step) {
-    return (
-        Math.ceil(value / step) *
-        step
     );
 }
