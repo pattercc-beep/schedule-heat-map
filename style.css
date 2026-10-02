@@ -146,8 +146,52 @@ summary {
 .results-note {
     color: #555;
     margin-top: -8px;
-    margin-bottom: 18px;
+    margin-bottom: 14px;
 }
+
+/* Availability tier key */
+
+.tier-legend {
+    background: #f7f7f7;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: 12px 14px;
+    margin: 12px 0 16px;
+}
+
+.tier-legend-title {
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+.tier-legend-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 22px;
+}
+
+.tier-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 14px;
+}
+
+.tier-swatch {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 1px solid #999;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+
+.tier-range {
+    margin-left: 4px;
+    color: #555;
+}
+
+/* Heat map */
 
 .table-wrap {
     overflow-x: auto;
@@ -181,23 +225,28 @@ th {
     z-index: 2;
 }
 
-td.heat-excellent {
+/*
+    These four classes are used by BOTH
+    the heat map and the Availability Tiers key.
+*/
+
+.heat-excellent {
     background-color: #4CAF50 !important;
     color: white !important;
     font-weight: bold;
 }
 
-td.heat-strong {
+.heat-strong {
     background-color: #C6E0B4 !important;
     color: black !important;
 }
 
-td.heat-viable {
+.heat-viable {
     background-color: #FFD966 !important;
     color: black !important;
 }
 
-td.heat-low {
+.heat-low {
     background-color: #F4B084 !important;
     color: black !important;
 }
@@ -221,6 +270,14 @@ td.heat-low {
     .card {
         padding: 15px;
     }
+
+    .tier-legend-items {
+        display: block;
+    }
+
+    .tier-legend-item {
+        margin: 7px 0;
+    }
 }
 
 @media print {
@@ -243,5 +300,9 @@ td.heat-low {
 
     .card {
         border: none;
+    }
+
+    .tier-legend {
+        break-inside: avoid;
     }
 }

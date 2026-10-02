@@ -529,6 +529,53 @@ function buildRecommendedWindowsTable(windows) {
 }
 
 
+function buildTierLegend() {
+    return `
+        <div class="tier-legend">
+            <div class="tier-legend-title">
+                Availability Tiers
+            </div>
+
+            <div class="tier-legend-items">
+
+                <div class="tier-legend-item">
+                    <span class="tier-swatch heat-excellent"></span>
+                    <span>
+                        <strong>Tier 1 – Excellent</strong>
+                        <span class="tier-range">90%+</span>
+                    </span>
+                </div>
+
+                <div class="tier-legend-item">
+                    <span class="tier-swatch heat-strong"></span>
+                    <span>
+                        <strong>Tier 2 – Strong</strong>
+                        <span class="tier-range">80–89%</span>
+                    </span>
+                </div>
+
+                <div class="tier-legend-item">
+                    <span class="tier-swatch heat-viable"></span>
+                    <span>
+                        <strong>Tier 3 – Viable</strong>
+                        <span class="tier-range">70–79%</span>
+                    </span>
+                </div>
+
+                <div class="tier-legend-item">
+                    <span class="tier-swatch heat-low"></span>
+                    <span>
+                        <strong>Limited</strong>
+                        <span class="tier-range">Below 70%</span>
+                    </span>
+                </div>
+
+            </div>
+        </div>
+    `;
+}
+
+
 function buildAvailabilityTable(grid, settings) {
     let html = `
         <h3>Availability Heat Map</h3>
@@ -537,6 +584,8 @@ function buildAvailabilityTable(grid, settings) {
             Each cell shows the percentage of students available for the full
             ${settings.meetingLength}-minute meeting beginning at that time.
         </p>
+
+        ${buildTierLegend()}
 
         <div class="table-wrap">
             <table>
@@ -775,7 +824,7 @@ function getTier(pct) {
         return "Tier 3 – Viable";
     }
 
-    return "Below threshold";
+    return "Limited";
 }
 
 
