@@ -26,10 +26,6 @@ document.getElementById("runButton").addEventListener("click", async function ()
         return;
     }
 
-    /*
-        Privacy safeguard:
-        The uploaded file should NOT contain a UC ID column.
-    */
     const uploadedHeaders = Object.keys(rows[0]);
 
     const containsUCID = uploadedHeaders.some(function (header) {
@@ -279,10 +275,6 @@ function buildAvailabilityGrid(
 
     const busyMap = new Map();
 
-    /*
-        Each schedule record occupying a slot
-        contributes 1 to BusyCount.
-    */
     busySlots.forEach(function (slot) {
         const key =
             slot.day + "|" + slot.slotMinutes;
@@ -307,10 +299,6 @@ function buildAvailabilityGrid(
             const rawBusyCount =
                 busyMap.get(key) || 0;
 
-            /*
-                Prevent overlapping records from
-                producing negative availability.
-            */
             const busyCount =
                 Math.min(
                     rawBusyCount,
@@ -383,11 +371,6 @@ function findRecommendedWindows(grid, settings) {
                 startMinutes +
                 settings.meetingLength;
 
-            /*
-                Only consider meetings that fit
-                completely inside the selected
-                search window.
-            */
             if (endMinutes > searchEnd) {
                 continue;
             }
@@ -440,20 +423,6 @@ function findRecommendedWindows(grid, settings) {
 }
 
 
-/*
-    Reduce repetitive recommendations.
-
-    For each day and availability percentage,
-    keep one representative meeting time.
-
-    Preference:
-    1. Start on the hour (:00)
-    2. Start on the half hour (:30)
-    3. Earliest remaining start time
-
-    Availability always remains the primary
-    ranking factor.
-*/
 function collapseRecommendedWindows(windows) {
     const selected = [];
     const days = ["M", "T", "W", "R", "F"];
@@ -505,13 +474,6 @@ function collapseRecommendedWindows(windows) {
 }
 
 
-/*
-    Lower numbers are preferred.
-
-    :00 = first choice
-    :30 = second choice
-    everything else = third choice
-*/
 function getStartTimePreference(minutes) {
     const minuteOfHour =
         minutes % 60;
@@ -885,17 +847,40 @@ function timeTextToMinutes(timeText) {
 }
 
 
+/*
+    Convert internal minute values to
+    user-friendly 12-hour time.
+
+    Examples:
+    540  -> 9:00 AM
+    870  -> 2:30 PM
+    1020 -> 5:00 PM
+*/
 function minutesToTimeText(minutes) {
-    const hours =
+    const hours24 =
         Math.floor(minutes / 60);
 
     const mins =
         minutes % 60;
 
+    const period =
+        hours24 >= 12
+            ? "PM"
+            : "AM";
+
+    let hours12 =
+        hours24 % 12;
+
+    if (hours12 === 0) {
+        hours12 = 12;
+    }
+
     return (
-        String(hours).padStart(2, "0") +
+        hours12 +
         ":" +
-        String(mins).padStart(2, "0")
+        String(mins).padStart(2, "0") +
+        " " +
+        period
     );
 }
 
