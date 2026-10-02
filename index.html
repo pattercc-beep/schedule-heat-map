@@ -32,23 +32,51 @@
 
             <ol class="instructions">
                 <li>Enter the student UCIDs (M#s) you want to analyze.</li>
+
                 <li>Select the appropriate term. The report defaults to the current term.</li>
+
                 <li>Click <strong>Apply</strong>.</li>
+
                 <li>Below the results, select <strong>Export → Data → CSV</strong>.</li>
+
                 <li>
                     Download and open the
-                    <a href="Schedule-Heat-Map_File-Prep.xlsm" download>
+                    <a href="https://mailuc.sharepoint.com/:x:/s/g-DegreeAuditEncoders/IQDGV68ZqrE9Tr0R4d0y5V7xAUxHRn936HCXoGe8jX6OXtw?download=1">
                         Schedule Heat Map File Prep Tool
                     </a>.
                 </li>
-                <li>Open the CaRT CSV and copy the full export, including the header row and UC ID column.</li>
-                <li>Paste the CaRT export into the File Prep Tool beginning in cell <strong>A15</strong>.</li>
-                <li>Click <strong>Prepare File for Upload</strong> and save the de-identified CSV it creates.</li>
+
+                <li>
+                    Click <strong>Enable Macros</strong>. If Excel then shows a red
+                    <strong>SECURITY RISK</strong> banner, close Excel.
+                </li>
+
+                <li>
+                    Right-click the downloaded file → <strong>Properties</strong> →
+                    check <strong>Unblock</strong> → <strong>Apply</strong> →
+                    reopen the file and click <strong>Enable Macros</strong> again.
+                </li>
+
+                <li>
+                    Open the CaRT CSV and copy the full export.
+                </li>
+
+                <li>
+                    Paste the full CaRT CSV export into the File Prep Tool beginning in
+                    cell <strong>A15</strong>.
+                </li>
+
+                <li>
+                    Click <strong>Prepare File for Upload</strong> and save the
+                    de-identified CSV it creates.
+                </li>
             </ol>
 
             <div class="privacy-warning">
                 <strong>Important: Do not upload the original CaRT export.</strong>
-                Upload only the de-identified CSV created by the Schedule Heat Map File Prep Tool. The prepared file replaces student UCIDs with anonymous student IDs.
+                Upload only the de-identified CSV created by the Schedule Heat Map
+                File Prep Tool. The prepared file replaces student UCIDs with
+                anonymous student IDs.
             </div>
         </section>
 
@@ -56,8 +84,9 @@
             <h2>2. Upload Schedule</h2>
 
             <p class="helper">
-                Upload the de-identified CSV created by the Schedule Heat Map File Prep Tool.
-                The number of students will be calculated automatically from the Anonymous Student ID column.
+                Upload the de-identified CSV created by the Schedule Heat Map File
+                Prep Tool. The number of students will be calculated automatically
+                from the Anonymous Student ID column.
             </p>
 
             <input
@@ -72,6 +101,7 @@
 
             <div class="form-row">
                 <label for="meetingLength">Meeting Length</label>
+
                 <select id="meetingLength">
                     <option value="30">30 minutes</option>
                     <option value="60">60 minutes</option>
@@ -81,6 +111,7 @@
 
             <div class="form-row">
                 <label for="minimumAvailability">Minimum Availability</label>
+
                 <select id="minimumAvailability">
                     <option value="0.70" selected>70%</option>
                     <option value="0.80">80%</option>
@@ -90,6 +121,7 @@
 
             <div class="form-row">
                 <label>Meeting Search Window</label>
+
                 <div>
                     <input type="time" id="searchStart" value="09:00">
                     to
@@ -102,9 +134,10 @@
             <h2>4. Travel Buffers</h2>
 
             <p class="helper">
-                Buffers are added before and after each class meeting to account for travel time.
-                Recommended UC defaults are: West/Online = 15 minutes, East/Victory = 25 minutes,
-                Blue Ash/Clermont/Off Campus = 40 minutes, Other = 25 minutes.
+                Buffers are added before and after each class meeting to account for
+                travel time. Recommended UC defaults are: West/Online = 15 minutes,
+                East/Victory = 25 minutes, Blue Ash/Clermont/Off Campus = 40 minutes,
+                Other = 25 minutes.
             </p>
 
             <label class="checkbox-label">
@@ -120,23 +153,55 @@
                 <summary>Customize buffers</summary>
 
                 <div class="form-row">
-                    <label for="bufferWestOnline">Uptown Campus West / Online</label>
-                    <input type="number" id="bufferWestOnline" value="15" min="0">
+                    <label for="bufferWestOnline">
+                        Uptown Campus West / Online
+                    </label>
+
+                    <input
+                        type="number"
+                        id="bufferWestOnline"
+                        value="15"
+                        min="0"
+                    >
                 </div>
 
                 <div class="form-row">
-                    <label for="bufferEastVictory">Uptown Campus East / Victory Parkway</label>
-                    <input type="number" id="bufferEastVictory" value="25" min="0">
+                    <label for="bufferEastVictory">
+                        Uptown Campus East / Victory Parkway
+                    </label>
+
+                    <input
+                        type="number"
+                        id="bufferEastVictory"
+                        value="25"
+                        min="0"
+                    >
                 </div>
 
                 <div class="form-row">
-                    <label for="bufferRegionalOffCampus">Blue Ash / Clermont / Off Campus</label>
-                    <input type="number" id="bufferRegionalOffCampus" value="40" min="0">
+                    <label for="bufferRegionalOffCampus">
+                        Blue Ash / Clermont / Off Campus
+                    </label>
+
+                    <input
+                        type="number"
+                        id="bufferRegionalOffCampus"
+                        value="40"
+                        min="0"
+                    >
                 </div>
 
                 <div class="form-row">
-                    <label for="bufferOther">Other Locations</label>
-                    <input type="number" id="bufferOther" value="25" min="0">
+                    <label for="bufferOther">
+                        Other Locations
+                    </label>
+
+                    <input
+                        type="number"
+                        id="bufferOther"
+                        value="25"
+                        min="0"
+                    >
                 </div>
             </details>
         </section>
@@ -149,7 +214,8 @@
             <h2>Results</h2>
 
             <div id="results">
-                Upload the de-identified schedule file and click <strong>Analyze Schedule</strong>.
+                Upload the de-identified schedule file and click
+                <strong>Analyze Schedule</strong>.
             </div>
         </section>
     </main>
@@ -158,4 +224,5 @@
     <script src="app.js"></script>
 
 </body>
+
 </html>
