@@ -14,21 +14,69 @@
         <h1>Schedule Heat Map</h1>
 
         <p class="intro">
-            Upload a CaRT schedule export to identify the best meeting times for students.
-            Files are processed in your browser and are not uploaded to a server.
+            Identify meeting times that work for the greatest percentage of students based on their class schedules and travel time between locations.
         </p>
 
         <section class="card">
-            <h2>1. Upload Schedule</h2>
-            <p class="helper">
-                Use the CaRT class meeting times export with UC ID, days of week, meeting start/end time, and location.
+            <h2>1. Prepare Schedule File</h2>
+
+            <p>
+                Open the
+                <a href="https://cart.uc.edu/analytics/saw.dll?Portal&PortalPath=%2Fshared%2FSide%20CaRT%2FM-P%2Fpattercc%2FFor%20Student%20Affairs%2FSchedule%20Heat%20Map%2FSchedule%20Heat%20Map"
+                   target="_blank"
+                   rel="noopener noreferrer">
+                    Schedule Heat Map report in CaRT
+                </a>.
             </p>
 
-            <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
+            <ol class="instructions">
+                <li>Enter the student UCIDs (M#s) you want to analyze.</li>
+                <li>Select the appropriate term. The report defaults to the current term.</li>
+                <li>Click <strong>Apply</strong>.</li>
+                <li>Below the results, select <strong>Export → Data → CSV</strong>.</li>
+                <li>Open the exported CSV file.</li>
+                <li><strong>Delete Column A, which contains the student UCIDs.</strong></li>
+                <li>Save the de-identified file before uploading it below.</li>
+            </ol>
+
+            <div class="privacy-warning">
+                <strong>Important: Do not upload student UCIDs.</strong>
+                Before using this tool, confirm that Column A containing the student UCIDs has been deleted from the exported file.
+            </div>
         </section>
 
         <section class="card">
-            <h2>2. Meeting Options</h2>
+            <h2>2. Upload Schedule</h2>
+
+            <p class="helper">
+                Upload the de-identified CSV or Excel file after removing the UC ID column.
+            </p>
+
+            <input
+                type="file"
+                id="fileInput"
+                accept=".xlsx,.xls,.csv"
+            >
+
+            <div class="form-row student-count-row">
+                <label for="studentCount">Number of Students</label>
+
+                <input
+                    type="number"
+                    id="studentCount"
+                    min="1"
+                    step="1"
+                    placeholder="e.g., 27"
+                >
+
+                <p class="field-note">
+                    Enter the number of UCIDs you submitted in CaRT. This is used to calculate the percentage of students available.
+                </p>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>3. Meeting Options</h2>
 
             <div class="form-row">
                 <label for="meetingLength">Meeting Length</label>
@@ -59,7 +107,7 @@
         </section>
 
         <section class="card">
-            <h2>3. Travel Buffers</h2>
+            <h2>4. Travel Buffers</h2>
 
             <p class="helper">
                 Buffers are added before and after each class meeting to account for travel time.
@@ -68,7 +116,11 @@
             </p>
 
             <label class="checkbox-label">
-                <input type="checkbox" id="useDefaultBuffers" checked>
+                <input
+                    type="checkbox"
+                    id="useDefaultBuffers"
+                    checked
+                >
                 Use recommended UC travel buffers
             </label>
 
@@ -77,33 +129,55 @@
 
                 <div class="form-row">
                     <label for="bufferWestOnline">Uptown Campus West / Online</label>
-                    <input type="number" id="bufferWestOnline" value="15" min="0">
+                    <input
+                        type="number"
+                        id="bufferWestOnline"
+                        value="15"
+                        min="0"
+                    >
                 </div>
 
                 <div class="form-row">
                     <label for="bufferEastVictory">Uptown Campus East / Victory Parkway</label>
-                    <input type="number" id="bufferEastVictory" value="25" min="0">
+                    <input
+                        type="number"
+                        id="bufferEastVictory"
+                        value="25"
+                        min="0"
+                    >
                 </div>
 
                 <div class="form-row">
                     <label for="bufferRegionalOffCampus">Blue Ash / Clermont / Off Campus</label>
-                    <input type="number" id="bufferRegionalOffCampus" value="40" min="0">
+                    <input
+                        type="number"
+                        id="bufferRegionalOffCampus"
+                        value="40"
+                        min="0"
+                    >
                 </div>
 
                 <div class="form-row">
                     <label for="bufferOther">Other Locations</label>
-                    <input type="number" id="bufferOther" value="25" min="0">
+                    <input
+                        type="number"
+                        id="bufferOther"
+                        value="25"
+                        min="0"
+                    >
                 </div>
             </details>
         </section>
 
-        <button id="runButton">Analyze Schedule</button>
+        <button id="runButton">
+            Analyze Schedule
+        </button>
 
         <section class="card results-card">
             <h2>Results</h2>
 
             <div id="results">
-                Upload a file and click <strong>Analyze Schedule</strong>.
+                Upload a de-identified schedule file, enter the number of students, and click <strong>Analyze Schedule</strong>.
             </div>
         </section>
     </main>

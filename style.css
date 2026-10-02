@@ -22,7 +22,8 @@ h2 {
 }
 
 .intro,
-.helper {
+.helper,
+.field-note {
     color: #555;
 }
 
@@ -38,8 +39,47 @@ h2 {
     overflow-x: auto;
 }
 
+.instructions {
+    padding-left: 24px;
+}
+
+.instructions li {
+    margin-bottom: 7px;
+}
+
+.privacy-warning {
+    background: #fff3cd;
+    border: 2px solid #d6a700;
+    border-radius: 6px;
+    padding: 14px;
+    margin-top: 18px;
+}
+
+.privacy-warning strong {
+    display: block;
+    margin-bottom: 4px;
+}
+
+a {
+    color: #0056b3;
+}
+
 .form-row {
     margin: 14px 0;
+}
+
+.student-count-row {
+    margin-top: 22px;
+}
+
+.student-count-row input {
+    width: 120px;
+}
+
+.field-note {
+    font-size: 14px;
+    margin-top: 6px;
+    margin-bottom: 0;
 }
 
 label {
@@ -165,6 +205,16 @@ td.heat-low {
 
 .export-buttons button {
     background: #555;
+}
+
+@media (max-width: 650px) {
+    body {
+        padding: 12px;
+    }
+
+    .card {
+        padding: 15px;
+    }
 }
 
 @media print {
